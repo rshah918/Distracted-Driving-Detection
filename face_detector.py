@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """Example using PyCoral to detect objects in a given image.
 To run this code, you must attach an Edge TPU attached to the host and
 install the Edge TPU runtime (`libedgetpu.so`) and `tflite_runtime`. For
@@ -24,6 +25,9 @@ from pycoral.adapters import detect
 from pycoral.utils.dataset import read_label_file
 from pycoral.utils.edgetpu import make_interpreter
 
+import io
+import picamera
+
 
 def draw_objects(draw, objs, labels):
   """Draws the bounding box and label for each object."""
@@ -41,8 +45,6 @@ def main():
       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument('-m', '--model', required=True,
                       help='File path of .tflite file')
-  parser.add_argument('-i', '--input', required=True,
-                      help='File path of image to process')
   parser.add_argument('-l', '--labels', help='File path of labels file')
   parser.add_argument('-t', '--threshold', type=float, default=0.4,
                       help='Score threshold for detected objects')
@@ -56,13 +58,22 @@ def main():
   interpreter = make_interpreter(args.model)
   interpreter.allocate_tensors()
 
-  image = Image.open(args.input)
-  _, scale = common.set_resized_input(
-      interpreter, image.size, lambda size: image.resize(size, Image.ANTIALIAS))
 
   print('----INFERENCE TIME----')
   print('Note: The first inference is slow because it includes',
         'loading the model into Edge TPU memory.')
+  
+
+  stream = io.BytesIO()
+  with picamera.PiCamera() as camera:
+    camera.start_preview()
+    time.sleep(2)
+    camera.capture(stream, format='jpeg')
+  stream.seek(0)
+  image = Image.open(stream)
+  _, scale = common.set_resized_input(
+      interpreter, image.size, lambda size: image.resize(size, Image.ANTIALIAS))
+
   for _ in range(args.count):
     start = time.perf_counter()
     interpreter.invoke()
