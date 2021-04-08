@@ -67,35 +67,35 @@ def main():
   stream = io.BytesIO()
   with picamera.PiCamera() as camera:
     camera.start_preview()
-    time.sleep(2)
-    camera.capture(stream, format='jpeg')
-  stream.seek(0)
-  image = Image.open(stream)
-  _, scale = common.set_resized_input(
-      interpreter, image.size, lambda size: image.resize(size, Image.ANTIALIAS))
+    while True:
+      camera.capture(stream, format='jpeg')
 
-  for _ in range(args.count):
-    start = time.perf_counter()
-    interpreter.invoke()
-    inference_time = time.perf_counter() - start
-    objs = detect.get_objects(interpreter, args.threshold, scale)
-    print('%.2f ms' % (inference_time * 1000))
+      image = Image.open(stream)
+      _, scale = common.set_resized_input(
+        interpreter, image.size, lambda size: image.resize(size, Image.ANTIALIAS))
+      start = time.perf_counter()
+      interpreter.invoke()
+      inference_time = time.perf_counter() - start
+      objs = detect.get_objects(interpreter, args.threshold, scale)
+      print('%.2f ms' % (inference_time * 1000))
 
-  print('-------RESULTS--------')
-  if not objs:
-    print('No objects detected')
+      print('-------RESULTS--------')
+      if not objs:
+        print('No objects detected')
 
-  for obj in objs:
-    print(labels.get(obj.id, obj.id))
-    print('  id:    ', obj.id)
-    print('  score: ', obj.score)
-    print('  bbox:  ', obj.bbox)
+      for obj in objs:
+        print(labels.get(obj.id, obj.id))
+        print('  id:    ', obj.id)
+        print('  score: ', obj.score)
+        print('  bbox:  ', obj.bbox)
 
-  if args.output:
-    image = image.convert('RGB')
-    draw_objects(ImageDraw.Draw(image), objs, labels)
-    image.save(args.output)
-    image.show()
+      stream.seek(0)
+      stream.truncate()
+      if args.output:
+        image = image.convert('RGB')
+        draw_objects(ImageDraw.Draw(image), objs, labels)
+        image.save(args.output)
+        image.show()
 
 
 if __name__ == '__main__':
