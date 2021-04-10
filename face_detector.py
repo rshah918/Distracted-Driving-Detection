@@ -57,12 +57,14 @@ def main():
   labels = read_label_file(args.labels) if args.labels else {}
   interpreter = make_interpreter(args.model)
   interpreter.allocate_tensors()
+  #initialize eye detector
+  eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 
 
   print('----INFERENCE TIME----')
   print('Note: The first inference is slow because it includes',
         'loading the model into Edge TPU memory.')
-  
+
 
   stream = io.BytesIO()
   with picamera.PiCamera() as camera:
