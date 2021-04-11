@@ -107,6 +107,8 @@ def main():
   stream = io.BytesIO()
   #with picamera.PiCamera() as camera:
     #camera.start_preview()
+  #counts the number of consective frames during which the driver is distracted
+  distraction_event_duration = 0
   while True:
     #camera.capture(stream, format='jpeg')
     #image = Image.open(stream)
@@ -133,7 +135,8 @@ def main():
         bottom = face.bbox[1]
         top = face.bbox[3]
         #convert video frame to a numpy array
-        numpy_frame = np.array(frame)
+        #TODO: WE WILL NEED TO CHANGE THIS WHEN THE PI CAMERA COMES IN
+        numpy_frame = frame
         #crop out the drivers face using bbox coordinates
         cropped_numpy_frame = numpy_frame[bottom:top, left:right]
         #run eye detector
@@ -141,8 +144,16 @@ def main():
         num_eyes_detected = len(eyes)
         print(num_eyes_detected, "Eyes Detected")
         if(num_eyes_detected < 2):
+            distraction_event_duration +=1
+        else:
+            distraction_event_duration = 0
+        #if the driver is distracted for 4 consecutive frames, play an audible alert
+        if distraction_event_duration >= 4:
             print("HOLY SHIT THE DRIVER IS DISTRACTED AHHHH")
-
+            #send a 5 second long alert to the Arduino
+            speakerCommand(client, write_characteristic, 'p')
+            time.sleep(5)
+            speakerCommand(client, write_characteristic, 's')
     #dont need this, but might be good to reference
     '''for obj in objs:
       print(labels.get(obj.id, obj.id))
