@@ -142,12 +142,13 @@ def main():
         print(num_eyes_detected, "Eyes Detected")
         if(num_eyes_detected < 2):
             print("HOLY SHIT THE DRIVER IS DISTRACTED AHHHH")
-            
-    for obj in objs:
+
+    #dont need this, but might be good to reference
+    '''for obj in objs:
       print(labels.get(obj.id, obj.id))
       print('  id:    ', obj.id)
       print('  score: ', obj.score)
-      print('  bbox:  ', obj.bbox)
+      print('  bbox:  ', obj.bbox)'''
 
     #stream.seek(0)
     #stream.truncate()
