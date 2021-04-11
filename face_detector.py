@@ -24,10 +24,33 @@ from pycoral.adapters import common
 from pycoral.adapters import detect
 from pycoral.utils.dataset import read_label_file
 from pycoral.utils.edgetpu import make_interpreter
+from bleak import BleakClient
 
 import io
 import picamera
+import asyncio
+import sys
+import time
 
+async def speakerCommand(client, write_characteristic, command):
+    try:
+        await client.write_gatt_char(write_characteristic, bytes(command))
+        if(command == 'p'):
+          print("started playing music")
+        else:
+          print("stopped playing music")
+    except Exception as inst:
+        print("Unexpected error:", inst)
+        print("oh no")
+
+async def connect(client):
+    try:
+        await client.connect()
+        await client.pair()
+        print("connected succesfully")
+    except Exception as inst:
+        print("Unexpected error:", inst)
+        print("Did not connect to bluetooth module")
 
 def draw_objects(draw, objs, labels):
   """Draws the bounding box and label for each object."""
@@ -57,6 +80,18 @@ def main():
   labels = read_label_file(args.labels) if args.labels else {}
   interpreter = make_interpreter(args.model)
   interpreter.allocate_tensors()
+
+  # HM-10 Module MAC Address and UUID
+  address = "64:69:4E:89:2B:C5"
+  #address = ("DC5D07D7-38D1-4B52-94DA-4BDC300F5506") #uncomment for macos
+  write_characteristic = "0000FFE1-0000-1000-8000-00805f9b34fb"
+
+  # Connecting to Bluetooth Module
+  client = BleakClient(address)
+
+  if not client.is_connected:
+    asyncio.run(connect(client))
+
   #initialize eye detector
   eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 
