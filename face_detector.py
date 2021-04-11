@@ -30,6 +30,7 @@ import io
 import picamera
 import asyncio
 import sys
+import cv2
 import time
 
 async def speakerCommand(client, write_characteristic, command):
@@ -81,6 +82,7 @@ def main():
   interpreter = make_interpreter(args.model)
   interpreter.allocate_tensors()
 
+  cap = cv2.VideoCapture(0)
   # HM-10 Module MAC Address and UUID
   address = "64:69:4E:89:2B:C5"
   #address = ("DC5D07D7-38D1-4B52-94DA-4BDC300F5506") #uncomment for macos
@@ -102,37 +104,46 @@ def main():
 
 
   stream = io.BytesIO()
-  with picamera.PiCamera() as camera:
-    camera.start_preview()
-    while True:
-      camera.capture(stream, format='jpeg')
+  #with picamera.PiCamera() as camera:
+    #camera.start_preview()
+  while True:
+    #camera.capture(stream, format='jpeg')
+    #image = Image.open(stream)
+    ret, frame = cap.read()
+    image = Image.fromarray(frame)
+    _, scale = common.set_resized_input(
+      interpreter, image.size, lambda size: image.resize(size, Image.ANTIALIAS))
+    start = time.perf_counter()
+    interpreter.invoke()
+    inference_time = time.perf_counter() - start
+    objs = detect.get_objects(interpreter, args.threshold, scale)
+    print('%.2f ms' % (inference_time * 1000))
+  
+    print('-------RESULTS--------')
+    if not objs:
+      print('No objects detected')
+  
+    for obj in objs:
+      print(labels.get(obj.id, obj.id))
+      print('  id:    ', obj.id)
+      print('  score: ', obj.score)
+      print('  bbox:  ', obj.bbox)
+  
+    #stream.seek(0)
+    #stream.truncate()
+    if args.output:
+      image = image.convert('RGB')
+      draw_objects(ImageDraw.Draw(image), objs, labels)
+      image.save(args.output)
+      image.show()
 
-      image = Image.open(stream)
-      _, scale = common.set_resized_input(
-        interpreter, image.size, lambda size: image.resize(size, Image.ANTIALIAS))
-      start = time.perf_counter()
-      interpreter.invoke()
-      inference_time = time.perf_counter() - start
-      objs = detect.get_objects(interpreter, args.threshold, scale)
-      print('%.2f ms' % (inference_time * 1000))
+    cv2.imshow('frame', frame)
 
-      print('-------RESULTS--------')
-      if not objs:
-        print('No objects detected')
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
 
-      for obj in objs:
-        print(labels.get(obj.id, obj.id))
-        print('  id:    ', obj.id)
-        print('  score: ', obj.score)
-        print('  bbox:  ', obj.bbox)
-
-      stream.seek(0)
-      stream.truncate()
-      if args.output:
-        image = image.convert('RGB')
-        draw_objects(ImageDraw.Draw(image), objs, labels)
-        image.save(args.output)
-        image.show()
+  cap.release()
+  cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
