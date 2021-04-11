@@ -28,7 +28,9 @@ while(True):
         roi_color = frame[y:y+h, x:x+w]
         if len(faces) > 0:
             eyes = eye_cascade.detectMultiScale(roi_color, minSize = (int(w/20),int(h/20)), maxSize=(int(w/6),int(h/6)), minNeighbors=5)
-            for(x2,y2,w2,h2) in eyes[0:((len(faces))*2)]:
+            print(len(eyes), " Eyes Detected")
+            for(x2,y2,w2,h2) in eyes:
+
                 img2 = cv2.rectangle(roi_color, (x2,y2), (x2+w2, y2+h2), (0,255,0), 2)
 
     # Display the resulting frame

@@ -32,6 +32,7 @@ import asyncio
 import sys
 import cv2
 import time
+import numpy as np
 
 async def speakerCommand(client, write_characteristic, command):
     try:
@@ -118,17 +119,36 @@ def main():
     inference_time = time.perf_counter() - start
     objs = detect.get_objects(interpreter, args.threshold, scale)
     print('%.2f ms' % (inference_time * 1000))
-  
+
     print('-------RESULTS--------')
     if not objs:
       print('No objects detected')
-  
+
+    else:
+        #If more than one face is detected, just use whatever is at index 0.
+        face = objs[0]
+        #extract bounding box coordinates
+        left = face.bbox[0]
+        right = face.bbox[2]
+        bottom = face.bbox[1]
+        top = face.bbox[3]
+        #convert video frame to a numpy array
+        numpy_frame = np.array(frame)
+        #crop out the drivers face using bbox coordinates
+        cropped_numpy_frame = numpy_frame[bottom:top, left:right]
+        #run eye detector
+        eyes = eye_cascade.detectMultiScale(roi_color, minSize = (int(w/20),int(h/20)), maxSize=(int(w/6),int(h/6)), minNeighbors=5)
+        num_eyes_detected = len(eyes)
+        print(num_eyes_detected, "Eyes Detected")
+        if(num_eyes_detected < 2):
+            print("HOLY SHIT THE DRIVER IS DISTRACTED AHHHH")
+            
     for obj in objs:
       print(labels.get(obj.id, obj.id))
       print('  id:    ', obj.id)
       print('  score: ', obj.score)
       print('  bbox:  ', obj.bbox)
-  
+
     #stream.seek(0)
     #stream.truncate()
     if args.output:
