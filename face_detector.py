@@ -120,7 +120,6 @@ def main():
     interpreter.invoke()
     inference_time = time.perf_counter() - start
     objs = detect.get_objects(interpreter, args.threshold, scale)
-    print('%.2f ms' % (inference_time * 1000))
 
     print('-------RESULTS--------')
     if not objs:
@@ -174,6 +173,7 @@ def main():
       image.save(args.output)
       image.show()
 
+    print('%.2f ms' % (inference_time * 1000))
     cv2.imshow('frame', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
