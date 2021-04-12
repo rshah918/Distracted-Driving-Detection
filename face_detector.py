@@ -130,16 +130,21 @@ def main():
         #If more than one face is detected, just use whatever is at index 0.
         face = objs[0]
         #extract bounding box coordinates
-        left = face.bbox[0]
-        right = face.bbox[2]
-        bottom = face.bbox[1]
-        top = face.bbox[3]
+        left = face.bbox.xmin
+        right = face.bbox.xmax
+        bottom = face.bbox.ymax
+        top = face.bbox.ymin
+        w = right - left
+        h = bottom - top
+        #print(f'left: {left}, right: {right}, bottom: {bottom}, top: {top}')
         #convert video frame to a numpy array
         #TODO: WE WILL NEED TO CHANGE THIS WHEN THE PI CAMERA COMES IN
         numpy_frame = frame
         #crop out the drivers face using bbox coordinates
         cropped_numpy_frame = numpy_frame[bottom:top, left:right]
         #run eye detector
+        roi_color = frame[top:bottom, left:right]
+        #cv2.imshow('frame', roi_color)
         eyes = eye_cascade.detectMultiScale(roi_color, minSize = (int(w/20),int(h/20)), maxSize=(int(w/6),int(h/6)), minNeighbors=5)
         num_eyes_detected = len(eyes)
         print(num_eyes_detected, "Eyes Detected")
@@ -151,9 +156,9 @@ def main():
         if distraction_event_duration >= 4:
             print("HOLY SHIT THE DRIVER IS DISTRACTED AHHHH")
             #send a 5 second long alert to the Arduino
-            speakerCommand(client, write_characteristic, 'p')
-            time.sleep(5)
-            speakerCommand(client, write_characteristic, 's')
+            #speakerCommand(client, write_characteristic, 'p')
+            #time.sleep(5)
+            #speakerCommand(client, write_characteristic, 's')
     #dont need this, but might be good to reference
     '''for obj in objs:
       print(labels.get(obj.id, obj.id))
