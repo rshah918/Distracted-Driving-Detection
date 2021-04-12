@@ -118,7 +118,6 @@ def main():
       interpreter, image.size, lambda size: image.resize(size, Image.ANTIALIAS))
     start = time.perf_counter()
     interpreter.invoke()
-    inference_time = time.perf_counter() - start
     objs = detect.get_objects(interpreter, args.threshold, scale)
 
     print('-------RESULTS--------')
@@ -173,6 +172,7 @@ def main():
       image.save(args.output)
       image.show()
 
+    inference_time = time.perf_counter() - start
     print('%.2f ms' % (inference_time * 1000))
     cv2.imshow('frame', frame)
 
