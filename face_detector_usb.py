@@ -120,7 +120,7 @@ def main():
   interpreter = make_interpreter(args.model)
   interpreter.allocate_tensors()
 
-  #cap = cv2.VideoCapture(0)
+  cap = cv2.VideoCapture(0)
   # HM-10 Module MAC Address and UUID
   #address = ("DC5D07D7-38D1-4B52-94DA-4BDC300F5506") #uncomment for macos
   #write_characteristic = "0000FFE1-0000-1000-8000-00805f9b34fb"
@@ -143,95 +143,94 @@ def main():
 
 
   stream = io.BytesIO()
-  with picamera.PiCamera() as camera:
-    camera.start_preview()
-    #counts the number of consective frames during which the driver is distracted
-    distraction_event_duration = 0
-    already_distracted = False
-    while True:
-      camera.capture(stream, format='jpeg')
-      image = Image.open(stream)
-      #ret, frame = cap.read()
-      #image = Image.fromarray(frame)
-      _, scale = common.set_resized_input(
-        interpreter, image.size, lambda size: image.resize(size, Image.ANTIALIAS))
-      start = time.perf_counter()
-      interpreter.invoke()
-      objs = detect.get_objects(interpreter, args.threshold, scale)
-  
-      #print('-------RESULTS--------')
-      if not objs:
-        #print('No objects detected')
-        a = ''
-  
-      else:
-          #If more than one face is detected, just use whatever is at index 0.
-          face = objs[0]
-          #extract bounding box coordinates
-          left = face.bbox.xmin
-          right = face.bbox.xmax
-          bottom = face.bbox.ymax
-          top = face.bbox.ymin
-          w = right - left
-          h = bottom - top
-          #print(f'left: {left}, right: {right}, bottom: {bottom}, top: {top}')
-          #convert video frame to a numpy array
-          #TODO: WE WILL NEED TO CHANGE THIS WHEN THE PI CAMERA COMES IN
-          #numpy_frame = frame
-          numpy_frame = numpy.asarray(image)
-          #crop out the drivers face using bbox coordinates
-          cropped_numpy_frame = numpy_frame[bottom:top, left:right]
-          #run eye detector
-          roi_color = numpy_frame[top:bottom, left:right]
-          #cv2.imshow('frame', roi_color)
-          eyes = eye_cascade.detectMultiScale(roi_color, minSize = (int(w/20),int(h/20)), maxSize=(int(w/6),int(h/6)), minNeighbors=5)
-          num_eyes_detected = len(eyes)
-          #print(num_eyes_detected, "Eyes Detected")
-          if(num_eyes_detected < 2):
-              distraction_event_duration +=1
-          else:
-              distraction_event_duration = 0
-          #if the driver is distracted for 4 consecutive frames, play an audible alert
-          if distraction_event_duration >= 4:
-              #send a 5 second long alert to the Arduino
-              if not already_distracted:
-                  #print("Playing p")
-                  #asyncio.run(speakerCommand(client, write_characteristic, 'p'))
-                  message = 'p'
-              already_distracted=True
-              #time.sleep(5)
-              #speakerCommand(client, write_characteristic, 's')
-          else:
-              if already_distracted:
-                  #print("Playing s")
-                  #asyncio.run(speakerCommand(client, write_characteristic, 's'))
-                  message = 's'
-              already_distracted=False
-  
-      #dont need this, but might be good to reference
-      '''for obj in objs:
-        print(labels.get(obj.id, obj.id))
-        print('  id:    ', obj.id)
-        print('  score: ', obj.score)
-        print('  bbox:  ', obj.bbox)'''
-  
-      #stream.seek(0)
-      #stream.truncate()
-      if args.output:
-        image = image.convert('RGB')
-        draw_objects(ImageDraw.Draw(image), objs, labels)
-        image.save(args.output)
-        image.show()
-  
-      inference_time = time.perf_counter() - start
-      #print('%.2f ms' % (inference_time * 1000))
-      #cv2.imshow('frame', frame)
-  
-      #if cv2.waitKey(1) & 0xFF == ord('q'):
-      #    break
+  #with picamera.PiCamera() as camera:
+    #camera.start_preview()
+  #counts the number of consective frames during which the driver is distracted
+  distraction_event_duration = 0
+  already_distracted = False
+  while True:
+    #camera.capture(stream, format='jpeg')
+    #image = Image.open(stream)
+    ret, frame = cap.read()
+    image = Image.fromarray(frame)
+    _, scale = common.set_resized_input(
+      interpreter, image.size, lambda size: image.resize(size, Image.ANTIALIAS))
+    start = time.perf_counter()
+    interpreter.invoke()
+    objs = detect.get_objects(interpreter, args.threshold, scale)
 
-  #cap.release()
-  #cv2.destroyAllWindows()
+    #print('-------RESULTS--------')
+    if not objs:
+      #print('No objects detected')
+      a = ''
+
+    else:
+        #If more than one face is detected, just use whatever is at index 0.
+        face = objs[0]
+        #extract bounding box coordinates
+        left = face.bbox.xmin
+        right = face.bbox.xmax
+        bottom = face.bbox.ymax
+        top = face.bbox.ymin
+        w = right - left
+        h = bottom - top
+        #print(f'left: {left}, right: {right}, bottom: {bottom}, top: {top}')
+        #convert video frame to a numpy array
+        #TODO: WE WILL NEED TO CHANGE THIS WHEN THE PI CAMERA COMES IN
+        numpy_frame = frame
+        #crop out the drivers face using bbox coordinates
+        cropped_numpy_frame = numpy_frame[bottom:top, left:right]
+        #run eye detector
+        roi_color = frame[top:bottom, left:right]
+        #cv2.imshow('frame', roi_color)
+        eyes = eye_cascade.detectMultiScale(roi_color, minSize = (int(w/20),int(h/20)), maxSize=(int(w/6),int(h/6)), minNeighbors=5)
+        num_eyes_detected = len(eyes)
+        #print(num_eyes_detected, "Eyes Detected")
+        if(num_eyes_detected < 2):
+            distraction_event_duration +=1
+        else:
+            distraction_event_duration = 0
+        #if the driver is distracted for 4 consecutive frames, play an audible alert
+        if distraction_event_duration >= 4:
+            #send a 5 second long alert to the Arduino
+            if not already_distracted:
+                #print("Playing p")
+                #asyncio.run(speakerCommand(client, write_characteristic, 'p'))
+                message = 'p'
+            already_distracted=True
+            #time.sleep(5)
+            #speakerCommand(client, write_characteristic, 's')
+        else:
+            if already_distracted:
+                #print("Playing s")
+                #asyncio.run(speakerCommand(client, write_characteristic, 's'))
+                message = 's'
+            already_distracted=False
+
+    #dont need this, but might be good to reference
+    '''for obj in objs:
+      print(labels.get(obj.id, obj.id))
+      print('  id:    ', obj.id)
+      print('  score: ', obj.score)
+      print('  bbox:  ', obj.bbox)'''
+
+    #stream.seek(0)
+    #stream.truncate()
+    if args.output:
+      image = image.convert('RGB')
+      draw_objects(ImageDraw.Draw(image), objs, labels)
+      image.save(args.output)
+      image.show()
+
+    inference_time = time.perf_counter() - start
+    #print('%.2f ms' % (inference_time * 1000))
+    cv2.imshow('frame', frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+  cap.release()
+  cv2.destroyAllWindows()
   message = 'd'
   time.sleep(3)
   #asyncio.run(disconnect(client))
